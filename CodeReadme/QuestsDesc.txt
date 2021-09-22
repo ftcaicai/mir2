@@ -1,0 +1,37 @@
+任务配置说明：
+
+[@DESCRIPTION]
+[@TASKDESCRIPTION]
+[@COMPLETION]
+	格式：字符串
+
+[@CARRYITEMS]		
+[@ITEMTASKS]
+	格式：ItemName  Count  "MSG"
+	例子：SkeletonBone 40 "Gather SkeletonBones"
+
+[@KILLTASKS]
+	格式：MonsterName  Count  "MSG"
+
+[@FLAGTASKS]
+	格式：数量 "MSG"
+	注意：数量 大于0 小于999
+
+[@FIXEDREWARDS]
+[@SELECTREWARDS]
+	格式：ItemName Count 
+	注意：ItemName  如果找不到 会再次查找 ItemName + "(M)" 或者 ItemName + "(F)"
+
+[@EXPREWARD]	
+[@GOLDREWARD]
+[@CREDITREWARD]
+	格式： uint
+	
+	
+
+
+
+
+代码：
+	1. Envir.StartItems  新角色物品
+	

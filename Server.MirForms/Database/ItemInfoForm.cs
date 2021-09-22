@@ -101,7 +101,12 @@ namespace Server
                     if (ITypeFilterComboBox.SelectedItem == null ||
                         ITypeFilterComboBox.SelectedIndex == ITypeFilterComboBox.Items.Count - 1 ||
                         Envir.ItemInfoList[i].Type == (ItemType)ITypeFilterComboBox.SelectedItem)
-                        ItemInfoListBox.Items.Add(Envir.ItemInfoList[i]);
+                    {
+                        if(!checkBox_isstart.Checked || (checkBox_isstart.Checked && Envir.ItemInfoList[i].StartItem))
+                        {
+                            ItemInfoListBox.Items.Add(Envir.ItemInfoList[i]);
+                        }                        
+                    }
                 }
             }
 
@@ -1813,6 +1818,11 @@ namespace Server
 
             for (int i = 0; i < _selectedItemInfos.Count; i++)
                 _selectedItemInfos[i].Slots = temp;
+        }
+
+        private void checkBox_isstart_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdateInterface(true);
         }
     }
 }
