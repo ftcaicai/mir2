@@ -8,6 +8,7 @@ using Server.MirObjects;
 using C = ClientPackets;
 using S = ServerPackets;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Server.MirNetwork
 {
@@ -212,6 +213,7 @@ namespace Server.MirNetwork
             if (_sendList == null || _sendList.Count <= 0) return;
 
             List<byte> data = new List<byte>();
+
             while (!_sendList.IsEmpty)
             {
                 Packet p;
@@ -557,13 +559,13 @@ namespace Server.MirNetwork
                 case (short)ClientPacketIds.MailCost:
                     MailCost((C.MailCost)p);
                     break;
-                case (short)ClientPacketIds.RequestIntelligentCreatureUpdates://IntelligentCreature
+                case (short)ClientPacketIds.RequestIntelligentCreatureUpdates:
                     RequestIntelligentCreatureUpdates((C.RequestIntelligentCreatureUpdates)p);
                     break;
-                case (short)ClientPacketIds.UpdateIntelligentCreature://IntelligentCreature
+                case (short)ClientPacketIds.UpdateIntelligentCreature:
                     UpdateIntelligentCreature((C.UpdateIntelligentCreature)p);
                     break;
-                case (short)ClientPacketIds.IntelligentCreaturePickup://IntelligentCreature
+                case (short)ClientPacketIds.IntelligentCreaturePickup:
                     IntelligentCreaturePickup((C.IntelligentCreaturePickup)p);
                     break;
                 case (short)ClientPacketIds.AddFriend:
@@ -838,7 +840,7 @@ namespace Server.MirNetwork
 
             if (info.Banned)
             {
-                if (info.ExpiryDate > DateTime.Now)
+                if (info.ExpiryDate > Envir.Now)
                 {
                     Enqueue(new S.StartGameBanned { Reason = info.BanReason, ExpiryDate = info.ExpiryDate });
                     return;
@@ -1117,7 +1119,7 @@ namespace Server.MirNetwork
                 return;
             }
 
-            if (p.ObjectID == Player.DefaultNPC.LoadedObjectID && Player.NPCObjectID == Player.DefaultNPC.LoadedObjectID)
+            if (p.ObjectID == Envir.DefaultNPC.LoadedObjectID && Player.NPCObjectID == Envir.DefaultNPC.LoadedObjectID)
             {
                 Player.CallDefaultNPC(p.Key);
                 return;
@@ -1619,7 +1621,7 @@ namespace Server.MirNetwork
             Player.SendIntelligentCreatureUpdates = p.Update;
         }
 
-        private void UpdateIntelligentCreature(C.UpdateIntelligentCreature p)//IntelligentCreature
+        private void UpdateIntelligentCreature(C.UpdateIntelligentCreature p)
         {
             if (Stage != GameStage.Game) return;
 
@@ -1646,10 +1648,15 @@ namespace Server.MirNetwork
                 //Update the creature info
                 for (int i = 0; i < Player.Info.IntelligentCreatures.Count; i++)
                 {
-                    if (Player.SummonedCreatureType == petUpdate.PetType && Player.Info.IntelligentCreatures[i].PetType == petUpdate.PetType)
+                    if (Player.Info.IntelligentCreatures[i].PetType == petUpdate.PetType)
                     {
-                        if (petUpdate.CustomName.Length <= 12)
+                        var reg = new Regex(@"^[A-Za-z0-9]{" + Globals.MinCharacterNameLength + "," + Globals.MaxCharacterNameLength + "}$");
+
+                        if (reg.IsMatch(petUpdate.CustomName))
+                        {
                             Player.Info.IntelligentCreatures[i].CustomName = petUpdate.CustomName;
+                        }
+
                         Player.Info.IntelligentCreatures[i].SlotIndex = petUpdate.SlotIndex;
                         Player.Info.IntelligentCreatures[i].Filter = petUpdate.Filter;
                         Player.Info.IntelligentCreatures[i].petMode = petUpdate.petMode;
@@ -1665,7 +1672,7 @@ namespace Server.MirNetwork
             }
         }
 
-        private void IntelligentCreaturePickup(C.IntelligentCreaturePickup p)//IntelligentCreature
+        private void IntelligentCreaturePickup(C.IntelligentCreaturePickup p)
         {
             if (Stage != GameStage.Game) return;
 

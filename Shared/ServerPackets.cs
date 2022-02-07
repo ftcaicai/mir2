@@ -476,9 +476,9 @@ namespace ServerPackets
 
         public List<ClientMagic> Magics = new List<ClientMagic>();
 
-        public List<ClientIntelligentCreature> IntelligentCreatures = new List<ClientIntelligentCreature>();//IntelligentCreature
-        public IntelligentCreatureType SummonedCreatureType = IntelligentCreatureType.None;//IntelligentCreature
-        public bool CreatureSummoned;//IntelligentCreature
+        public List<ClientIntelligentCreature> IntelligentCreatures = new List<ClientIntelligentCreature>();
+        public IntelligentCreatureType SummonedCreatureType = IntelligentCreatureType.None;
+        public bool CreatureSummoned;
 
 
 
@@ -543,12 +543,15 @@ namespace ServerPackets
             int count = reader.ReadInt32();
 
             for (int i = 0; i < count; i++)
+            {
                 Magics.Add(new ClientMagic(reader));
+            }
 
-            //IntelligentCreature
             count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
+            {
                 IntelligentCreatures.Add(new ClientIntelligentCreature(reader));
+            }
             SummonedCreatureType = (IntelligentCreatureType)reader.ReadByte();
             CreatureSummoned = reader.ReadBoolean();
         }
@@ -624,12 +627,16 @@ namespace ServerPackets
 
             writer.Write(Magics.Count);
             for (int i = 0; i < Magics.Count; i++)
+            {
                 Magics[i].Save(writer);
+            }
 
-            //IntelligentCreature
             writer.Write(IntelligentCreatures.Count);
             for (int i = 0; i < IntelligentCreatures.Count; i++)
+            {
                 IntelligentCreatures[i].Save(writer);
+            }
+
             writer.Write((byte)SummonedCreatureType);
             writer.Write(CreatureSummoned);
         }
@@ -2902,6 +2909,25 @@ namespace ServerPackets
         {
             writer.Write(UniqueID);
             writer.Write(SlotSize);
+        }
+    }
+
+    public sealed class ItemSealChanged : Packet
+    {
+        public override short Index { get { return (short)ServerPacketIds.ItemSealChanged; } }
+
+        public ulong UniqueID;
+        public DateTime ExpiryDate;
+
+        protected override void ReadPacket(BinaryReader reader)
+        {
+            UniqueID = reader.ReadUInt64();
+            ExpiryDate = DateTime.FromBinary(reader.ReadInt64());
+        }
+        protected override void WritePacket(BinaryWriter writer)
+        {
+            writer.Write(UniqueID);
+            writer.Write(ExpiryDate.ToBinary());
         }
     }
 
@@ -5193,7 +5219,7 @@ namespace ServerPackets
         }
     }
 
-    public sealed class NewIntelligentCreature : Packet//IntelligentCreature
+    public sealed class NewIntelligentCreature : Packet
     {
         public override short Index
         {
@@ -5211,7 +5237,7 @@ namespace ServerPackets
             Creature.Save(writer);
         }
     }
-    public sealed class UpdateIntelligentCreatureList : Packet//IntelligentCreature
+    public sealed class UpdateIntelligentCreatureList : Packet
     {
         public override short Index
         {
@@ -5898,6 +5924,27 @@ namespace ServerPackets
             writer.Write(Page);
             writer.Write(Result);
             writer.Write(AutoRoll);
+        }
+    }
+
+
+    public sealed class SetCompass : Packet
+    {
+        public override short Index { get { return (short)ServerPacketIds.SetCompass; } }
+
+        public Point Location;
+
+        protected override void ReadPacket(BinaryReader reader)
+        {
+            var x = reader.ReadInt32();
+            var y = reader.ReadInt32();
+
+            Location = new Point(x, y);
+        }
+        protected override void WritePacket(BinaryWriter writer)
+        {
+            writer.Write(Location.X);
+            writer.Write(Location.Y);
         }
     }
 }

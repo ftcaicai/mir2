@@ -10,6 +10,7 @@ namespace Client
         public const long CleanDelay = 600000;
         public static int ScreenWidth = 1024, ScreenHeight = 768;
         private static InIReader Reader = new InIReader(@".\Mir2Config.ini");
+        private static InIReader QuestTrackingReader = new InIReader(Path.Combine(UserDataPath, @".\QuestTracking.ini"));
 
         private static bool _useTestConfig;
         public static bool UseTestConfig
@@ -36,6 +37,7 @@ namespace Client
                             MonsterPath = @".\Data\Monster\",
                             GatePath = @".\Data\Gate\",
                             FlagPath = @".\Data\Flag\",
+                            SiegePath = @".\Data\Siege\",
                             NPCPath = @".\Data\NPC\",
                             CArmourPath = @".\Data\CArmour\",
                             CWeaponPath = @".\Data\CWeapon\",
@@ -57,7 +59,9 @@ namespace Client
                             TransformMountsPath = @".\Data\TransformRide2\",
                             TransformEffectPath = @".\Data\TransformEffect\",
                             TransformWeaponEffectPath = @".\Data\TransformWeaponEffect\",
-                            MouseCursorPath = @".\Data\Cursors\";
+                            MouseCursorPath = @".\Data\Cursors\",
+                            ResourcePath = @".\DirectX\",
+                            UserDataPath = @".\Data\UserData\";
 
         //Logs
         public static bool LogErrors = true;
@@ -65,7 +69,7 @@ namespace Client
         public static int RemainingErrorLogs = 100;
 
         //Graphics
-        public static bool FullScreen = true, Borderless = true, TopMost = true;
+        public static bool FullScreen = true, Borderless = true, TopMost = true, MouseClip = false;
         public static string FontName = "Tahoma"; //"MS Sans Serif"
         public static float FontSize = 8F;
         public static bool UseMouseCursors = true;
@@ -189,6 +193,7 @@ namespace Client
             //Graphics
             FullScreen = Reader.ReadBoolean("Graphics", "FullScreen", FullScreen);
             Borderless = Reader.ReadBoolean("Graphics", "Borderless", Borderless);
+            MouseClip = Reader.ReadBoolean("Graphics", "MouseClip", MouseClip);
             TopMost = Reader.ReadBoolean("Graphics", "AlwaysOnTop", TopMost);
             FPSCap = Reader.ReadBoolean("Graphics", "FPSCap", FPSCap);
             Resolution = Reader.ReadInt32("Graphics", "Resolution", Resolution);
@@ -286,6 +291,7 @@ namespace Client
             //Graphics
             Reader.Write("Graphics", "FullScreen", FullScreen);
             Reader.Write("Graphics", "Borderless", Borderless);
+            Reader.Write("Graphics", "MouseClip", MouseClip);
             Reader.Write("Graphics", "AlwaysOnTop", TopMost);
             Reader.Write("Graphics", "FPSCap", FPSCap);
             Reader.Write("Graphics", "Resolution", Resolution);
@@ -355,26 +361,23 @@ namespace Client
             Reader.Write("Launcher", "AutoStart", P_AutoStart);
         }
 
-        public static void LoadTrackedQuests(string Charname)
+        public static void LoadTrackedQuests(string charName)
         {
             //Quests
             for (int i = 0; i < TrackedQuests.Length; i++)
             {
-                TrackedQuests[i] = Reader.ReadInt32("Q-" + Charname, "Quest-" + i.ToString(), -1);
+                TrackedQuests[i] = QuestTrackingReader.ReadInt32(charName, "Quest-" + i.ToString(), -1);
             }
         }
 
-        public static void SaveTrackedQuests(string Charname)
+        public static void SaveTrackedQuests(string charName)
         {
             //Quests
             for (int i = 0; i < TrackedQuests.Length; i++)
             {
-                Reader.Write("Q-" + Charname, "Quest-" + i.ToString(), TrackedQuests[i]);
+                QuestTrackingReader.Write(charName, "Quest-" + i.ToString(), TrackedQuests[i]);
             }
         }
-
-
-      
     }
 
     

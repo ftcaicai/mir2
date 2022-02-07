@@ -559,6 +559,8 @@ public abstract class Packet
                 return new S.ItemRepaired();
             case (short)ServerPacketIds.ItemSlotSizeChanged:
                 return new S.ItemSlotSizeChanged();
+            case (short)ServerPacketIds.ItemSealChanged:
+                return new S.ItemSealChanged();
             case (short)ServerPacketIds.NewMagic:
                 return new S.NewMagic();
             case (short)ServerPacketIds.MagicLeveled:
@@ -845,6 +847,8 @@ public abstract class Packet
                 return new S.UpdateNotice();
             case (short)ServerPacketIds.Roll:
                 return new S.Roll();
+            case (short)ServerPacketIds.SetCompass:
+                return new S.SetCompass();
             default:
                 return null;
         }

@@ -17,9 +17,7 @@ public class ClientMagic
     public bool IsTempSpell;
     public long CastTime, Delay;
 
-    public ClientMagic()
-    {
-    }
+    public ClientMagic() { }
 
     public ClientMagic(BinaryReader reader)
     {
@@ -257,6 +255,8 @@ public class ClientQuestInfo
 
     public QuestType Type;
 
+    public int TimeLimitInSeconds = 0;
+
     public uint RewardGold;
     public uint RewardExp;
     public uint RewardCredit;
@@ -296,9 +296,11 @@ public class ClientQuestInfo
         QuestNeeded = reader.ReadInt32();
         ClassNeeded = (RequiredClass)reader.ReadByte();
         Type = (QuestType)reader.ReadByte();
+        TimeLimitInSeconds = reader.ReadInt32();
         RewardGold = reader.ReadUInt32();
         RewardExp = reader.ReadUInt32();
         RewardCredit = reader.ReadUInt32();
+
 
         count = reader.ReadInt32();
 
@@ -336,6 +338,7 @@ public class ClientQuestInfo
         writer.Write(QuestNeeded);
         writer.Write((byte)ClassNeeded);
         writer.Write((byte)Type);
+        writer.Write(TimeLimitInSeconds);
         writer.Write(RewardGold);
         writer.Write(RewardExp);
         writer.Write(RewardCredit);

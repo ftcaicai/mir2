@@ -31,8 +31,8 @@ namespace Client
         public static Point MPoint;
 
         public readonly static Stopwatch Timer = Stopwatch.StartNew();
-        public readonly static DateTime StartTime = DateTime.Now;
-        public static long Time, OldTime;
+        public readonly static DateTime StartTime = DateTime.UtcNow;
+        public static long Time;
         public static DateTime Now { get { return StartTime.AddMilliseconds(Time); } }
         public static readonly Random Random = new Random();
 
@@ -41,6 +41,8 @@ namespace Client
         private static long _fpsTime;
         private static int _fps;
         public static int FPS;
+        public static int DPS;
+        public static int DPSCounter;
 
         public static long PingTime;
         public static long NextPing = 10000;
@@ -69,7 +71,7 @@ namespace Client
 
 
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.Selectable, true);
-            FormBorderStyle = Settings.FullScreen ? FormBorderStyle.None : FormBorderStyle.FixedDialog;
+            FormBorderStyle = Settings.FullScreen || Settings.Borderless ? FormBorderStyle.None : FormBorderStyle.FixedDialog;
 
             Graphics = CreateGraphics();
             Graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -99,7 +101,6 @@ namespace Client
                 SaveError(ex.ToString());
             }
         }
-
 
         private static void Application_Idle(object sender, EventArgs e)
         {
@@ -156,8 +157,8 @@ namespace Client
         }
         public static void CMain_MouseMove(object sender, MouseEventArgs e)
         {
-            if (Settings.FullScreen)
-                Cursor.Clip = new Rectangle(0, 0, Settings.ScreenWidth, Settings.ScreenHeight);
+            if (Settings.FullScreen || Settings.MouseClip)
+                Cursor.Clip = Program.Form.RectangleToScreen(Program.Form.ClientRectangle);
 
             MPoint = Program.Form.PointToClient(Cursor.Position);
 
@@ -311,6 +312,10 @@ namespace Client
                 _fpsTime = Time + 1000;
                 FPS = _fps;
                 _fps = 0;
+
+                DPS = DPSCounter;
+                DPSCounter = 0;
+
                 DXManager.Clean(); // Clean once a second.
             }
             else
@@ -377,6 +382,10 @@ namespace Client
             if (MirControl.MouseControl != null)
             {
                 text = string.Format("FPS: {0}", FPS);
+
+                text += string.Format(", DPS: {0}", DPS);
+
+                text += string.Format(", Time: {0:HH:mm:ss UTC}", Now);
 
                 if (MirControl.MouseControl is MapControl)
                     text += string.Format(", Co Ords: {0}", MapControl.MapLocation);
@@ -519,7 +528,7 @@ namespace Client
         {
             Settings.FullScreen = !Settings.FullScreen;
 
-            Program.Form.FormBorderStyle = Settings.FullScreen ? FormBorderStyle.None : FormBorderStyle.FixedDialog;
+            Program.Form.FormBorderStyle = Settings.FullScreen || Settings.Borderless ? FormBorderStyle.None : FormBorderStyle.FixedDialog;
 
             DXManager.Parameters.Windowed = !Settings.FullScreen;
 

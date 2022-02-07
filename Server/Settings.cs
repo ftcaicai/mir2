@@ -180,8 +180,6 @@ namespace Server
         public static uint MaxDropGold = 2000;
         public static bool DropGold = true;
 
-
-        //IntelligentCreature      
         public static string CreatureBlackStoneName = "BlackCreatureStone";
 
         //Fishing Settings
@@ -255,6 +253,8 @@ namespace Server
                             ManaRegenWeight = 10,
                             MaxLuck = 10;
 
+        public static ushort ItemSealDelay = 60;
+
         public static bool PvpCanResistMagic = false,
                               PvpCanResistPoison = false,
                               PvpCanFreeze = false;
@@ -273,6 +273,10 @@ namespace Server
         public static List<GuildBuffInfo> Guild_BuffList = new List<GuildBuffInfo>();
         public static long GroupInviteDelay { get; internal set; } = 2000;
         public static long TradeDelay { get; internal set; } = 2000;
+
+        //Archive Settings
+        public static int ArchiveInactiveCharacterAfterMonths = 12;
+        public static int ArchiveDeletedCharacterAfterMonths = 1;
 
         public static void LoadVersion()
         {
@@ -435,6 +439,7 @@ namespace Server
             HealthRegenWeight = Math.Max((byte)1, Reader.ReadByte("Items", "HealthRegenWeight", HealthRegenWeight));
             ManaRegenWeight = Math.Max((byte)1, Reader.ReadByte("Items", "ManaRegenWeight", ManaRegenWeight));
             MaxLuck = Reader.ReadByte("Items", "MaxLuck", MaxLuck);
+            ItemSealDelay = Reader.ReadUInt16("Items", "SealDelay", ItemSealDelay);
 
             PvpCanResistMagic = Reader.ReadBoolean("Items","PvpCanResistMagic",PvpCanResistMagic);
             PvpCanResistPoison = Reader.ReadBoolean("Items", "PvpCanResistPoison", PvpCanResistPoison);
@@ -442,8 +447,11 @@ namespace Server
 
             RangeAccuracyBonus = Reader.ReadByte("Bonus", "RangeAccuracyBonus", RangeAccuracyBonus);
 
-            //IntelligentCreature
             CreatureBlackStoneName = Reader.ReadString("IntelligentCreatures", "CreatureBlackStoneName", CreatureBlackStoneName);
+
+            //Archive
+            ArchiveInactiveCharacterAfterMonths = Math.Max(1, Reader.ReadInt32("Archive", "InactiveCharacterMonths", ArchiveInactiveCharacterAfterMonths));
+            ArchiveDeletedCharacterAfterMonths = Math.Max(1, Reader.ReadInt32("Archive", "DeletedCharacterMonths", ArchiveDeletedCharacterAfterMonths));
 
             if (!Directory.Exists(EnvirPath))
                 Directory.CreateDirectory(EnvirPath);
@@ -676,6 +684,7 @@ namespace Server
             Reader.Write("Items", "HealthRegenWeight", HealthRegenWeight);
             Reader.Write("Items", "ManaRegenWeight", ManaRegenWeight);
             Reader.Write("Items", "MaxLuck", MaxLuck);
+            Reader.Write("Items", "SealDelay", ItemSealDelay);
 
             Reader.Write("Items", "PvpCanResistMagic", PvpCanResistMagic);
             Reader.Write("Items", "PvpCanResistPoison", PvpCanResistPoison);
@@ -698,8 +707,11 @@ namespace Server
             Reader.Write("Game", "ScrollMob3", ScrollMob3);
             Reader.Write("Game", "ScrollMob4", ScrollMob4);
 
-            //IntelligentCreature
             Reader.Write("IntelligentCreatures", "CreatureBlackStoneName", CreatureBlackStoneName);
+
+            //Archive
+            Reader.Write("Archive", "InactiveCharacterMonths", ArchiveInactiveCharacterAfterMonths);
+            Reader.Write("Archive", "DeletedCharacterMonths", ArchiveDeletedCharacterAfterMonths);
 
             SaveAwakeAttribute();
         }

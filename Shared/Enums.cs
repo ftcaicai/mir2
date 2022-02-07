@@ -148,6 +148,11 @@ public enum QuestState : byte
     Remove
 }
 
+public enum QuestAction : byte
+{
+    TimeExpired
+}
+
 public enum DefaultNPCType : byte
 {
     Login,
@@ -656,6 +661,7 @@ public enum Monster : ushort
     GrassElemental = 462,
     RockElemental = 463,
 
+    //Special
     EvilMir = 900,
     EvilMirBody = 901,
     DragonStatue = 902,
@@ -663,6 +669,14 @@ public enum Monster : ushort
     HellBomb2 = 904,
     HellBomb3 = 905,
 
+    //Siege
+    Catapult = 940,
+    ChariotBallista = 941,
+    Ballista = 942,
+    Trebuchet = 943,
+    CanonTrebuchet = 944,
+
+    //Gates
     SabukGate = 950,
     PalaceWallLeft = 951,
     PalaceWall1 = 952,
@@ -679,6 +693,9 @@ public enum Monster : ushort
     NammandWallSection = 963, //Not Coded
     FrozenDoor = 964, //Not Coded
 
+    //Flags 1000 ~ 1100
+
+    //Creatures
     BabyPig = 10000,//Permanent
     Chick = 10001,//Special
     Kitten = 10002,//Permanent
@@ -864,7 +881,9 @@ public enum ItemType : byte
     Pets = 36,
     Transform = 37,
     Deco = 38,
-    Socket = 39
+    Socket = 39,
+    MonsterSpawn = 40,
+    SiegeAmmo = 41 //TODO
 }
 
 public enum MirGridType : byte
@@ -1258,6 +1277,7 @@ public enum SpellEffect : byte
     KingGuard2,    
     DeathCrawlerBreath,
     FlamingMutantWeb,
+    FurbolgWarriorCritical,
     Tester    
 }
 
@@ -1301,6 +1321,7 @@ public enum BuffType : byte
     PowerBeadBuff,
     HornedWarriorShield,
     HornedCommanderShield,
+    Blindness,
 
     //Special
     GameMaster = 100,
@@ -1310,7 +1331,7 @@ public enum BuffType : byte
     Gold,
     BagWeight,
     Transform,
-    RelationshipEXP,
+    Lover,
     Mentee,
     Mentor,
     Guild,
@@ -1468,6 +1489,7 @@ public enum ServerPacketIds : short
     RepairItem,
     ItemRepaired,
     ItemSlotSizeChanged,
+    ItemSealChanged,
     NewMagic,
     RemoveMagic,
     MagicLeveled,
@@ -1610,7 +1632,8 @@ public enum ServerPacketIds : short
     SetTimer,
     ExpireTimer,
     UpdateNotice,
-    Roll
+    Roll,
+    SetCompass
 }
 
 public enum ClientPacketIds : short

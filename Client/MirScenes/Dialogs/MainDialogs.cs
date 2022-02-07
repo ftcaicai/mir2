@@ -3131,6 +3131,7 @@ namespace Client.MirScenes.Dialogs
                     colour = Color.FromArgb(255, 0, 0);
 
                 DXManager.Sprite.Draw(DXManager.RadarTexture, new Rectangle(0, 0, 2, 2), Vector3.Zero, new Vector3((float)(x - 0.5), (float)(y - 0.5), 0.0F), colour);
+                CMain.DPSCounter++;
 
                 #region NPC Quest Icons
 
@@ -4775,11 +4776,11 @@ namespace Client.MirScenes.Dialogs
     }
     public sealed class BigMapDialog : MirControl
     {
-	float ScaleX;
+	    float ScaleX;
         float ScaleY;
 	
         int BigMap_MouseCoordsProcessing_OffsetX, BigMap_MouseCoordsProcessing_OffsetY;
-            
+
         public BigMapDialog()
         {
             NotControl = false;
@@ -4788,15 +4789,15 @@ namespace Client.MirScenes.Dialogs
             //BorderColour = Color.Lime;
             BeforeDraw += (o, e) => OnBeforeDraw();
             Sort = true;
-	    
+
             MouseMove += UpdateBigMapCoordinates;
         }
 
-	private void UpdateBigMapCoordinates(object sender, MouseEventArgs e)
+        private void UpdateBigMapCoordinates(object sender, MouseEventArgs e)
         {
             int MouseCoordsOnBigMap_MapValue_X = (int)((e.Location.X - BigMap_MouseCoordsProcessing_OffsetX) / ScaleX);
             int MouseCoordsOnBigMap_MapValue_Y = (int)((e.Location.Y - BigMap_MouseCoordsProcessing_OffsetY) / ScaleY);
-	    
+
             this.Hint = string.Format("{0},{1}", MouseCoordsOnBigMap_MapValue_X, MouseCoordsOnBigMap_MapValue_Y);
         }
 
@@ -4832,7 +4833,8 @@ namespace Client.MirScenes.Dialogs
             viewRect.X = (Settings.ScreenWidth - viewRect.Width) / 2;
             viewRect.Y = (Settings.ScreenHeight - 120 - viewRect.Height) / 2;
 
-	    BigMap_MouseCoordsProcessing_OffsetX = viewRect.X;
+
+            BigMap_MouseCoordsProcessing_OffsetX = viewRect.X;
             BigMap_MouseCoordsProcessing_OffsetY = viewRect.Y;
 
             Location = viewRect.Location;
@@ -4880,6 +4882,7 @@ namespace Client.MirScenes.Dialogs
                     colour = Color.FromArgb(255, 0, 0);
 
                 DXManager.Sprite.Draw(DXManager.RadarTexture, new Rectangle(0, 0, 2, 2), Vector3.Zero, new Vector3((float)(x - 0.5), (float)(y - 0.5), 0.0F), colour);
+                CMain.DPSCounter++;
             }
         }
 

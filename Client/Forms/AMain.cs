@@ -10,6 +10,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using Client;
 using System.Linq;
+using Microsoft.Web.WebView2.Core;
 
 namespace Launcher
 {
@@ -39,6 +40,7 @@ namespace Launcher
         public AMain()
         {
             InitializeComponent();
+
             BackColor = Color.FromArgb(1, 0, 0);
             TransparencyKey = Color.FromArgb(1, 0, 0);
         }
@@ -62,18 +64,11 @@ namespace Launcher
         {
             try
             {
-                OldList = new List<FileInformation>();
                 DownloadList = new Queue<FileInformation>();
 
-                byte[] data = Download(Settings.P_PatchFileName);
+                GetOldFileList();
 
-                if (data != null)
-                {
-                    using (MemoryStream stream = new MemoryStream(data))
-                    using (BinaryReader reader = new BinaryReader(stream))
-                        ParseOld(reader);
-                }
-                else
+                if (OldList.Count == 0)
                 {
                     MessageBox.Show(GameLanguage.PatchErr);
                     Completed = true;
@@ -157,6 +152,27 @@ namespace Launcher
             }
 
             return false;
+        }
+
+        private void GetOldFileList()
+        {
+            OldList = new List<FileInformation>();
+
+            //byte[] data = DownloadFile(PatchFileName);
+            byte[] data = Download(Settings.P_PatchFileName);
+
+            if (data != null)
+            {
+                using MemoryStream stream = new MemoryStream(data);
+                using BinaryReader reader = new BinaryReader(stream);
+
+                int count = reader.ReadInt32();
+
+                for (int i = 0; i < count; i++)
+                {
+                    OldList.Add(new FileInformation(reader));
+                }
+            }
         }
 
 
@@ -271,15 +287,22 @@ namespace Launcher
 
             try
             {
-                using (WebClient client = new WebClient())
-                {
-                    if (Settings.P_NeedLogin)
-                        client.Credentials = new NetworkCredential(Settings.P_Login, Settings.P_Password);
-                    else
-                        client.Credentials = new NetworkCredential("", "");
+                using WebClient client = new WebClient();
 
-                    return client.DownloadData(Settings.P_Host + Path.ChangeExtension(fileName, ".gz"));
+                client.CachePolicy = new System.Net.Cache.RequestCachePolicy(System.Net.Cache.RequestCacheLevel.NoCacheNoStore);
+
+                if (Settings.P_NeedLogin)
+                {
+                    client.Credentials = new NetworkCredential(Settings.P_Login, Settings.P_Password);
                 }
+                else
+                {
+                    client.Credentials = new NetworkCredential("", "");
+                }
+
+                var rand = new Random(1000).Next();
+
+                return client.DownloadData(Settings.P_Host + Path.ChangeExtension(fileName, ".gz") + $"?rand={rand}");
             }
             catch
             {
@@ -307,6 +330,7 @@ namespace Launcher
                 }
             }
         }
+
         public static byte[] Compress(byte[] raw)
         {
             using (MemoryStream mStream = new MemoryStream())
@@ -332,7 +356,14 @@ namespace Launcher
 
         private void AMain_Load(object sender, EventArgs e)
         {
-            if (Settings.P_BrowserAddress != "") Main_browser.Navigate(new Uri(Settings.P_BrowserAddress));
+            var envir = CoreWebView2Environment.CreateAsync(null, Settings.ResourcePath).Result;
+            Main_browser.EnsureCoreWebView2Async(envir);
+
+            if (Settings.P_BrowserAddress != "")
+            {
+                Main_browser.NavigationCompleted += Main_browser_NavigationCompleted;
+                Main_browser.Source = new Uri(Settings.P_BrowserAddress);
+            }
 
             RepairOldFiles();
 
@@ -349,6 +380,11 @@ namespace Launcher
 
             _workThread = new Thread(Start) { IsBackground = true };
             _workThread.Start();
+        }
+
+        private void Main_browser_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
+        {
+            if (Main_browser.Source.AbsolutePath != "blank") Main_browser.Visible = true;
         }
 
         private void Launch_pb_Click(object sender, EventArgs e)
@@ -472,11 +508,6 @@ namespace Launcher
             ProgTotalEnd_pb.Location = new Point((TotalProg_pb.Location.X + TotalProg_pb.Width), 508);
             if (TotalProg_pb.Width == 0) ProgTotalEnd_pb.Visible = false;
             else ProgTotalEnd_pb.Visible = true;
-        }
-
-        private void Main_browser_DocumentCompleted(object sender, WebBrowserDocumentCompletedEventArgs e)
-        {
-            if (Main_browser.Url.AbsolutePath != "blank") Main_browser.Visible = true;
         }
 
         private void InterfaceTimer_Tick(object sender, EventArgs e)

@@ -335,6 +335,9 @@ namespace Client.MirScenes.Dialogs
                 case BuffType.Guild:
                     text += GameScene.Scene.GuildDialog.ActiveStats;
                     break;
+                case BuffType.Blindness:
+                    text += "Reduces visibility\n";
+                    break;
             }
 
             if (!overridestats)
@@ -469,6 +472,8 @@ namespace Client.MirScenes.Dialogs
                 //Monster
                 case BuffType.RhinoPriestDebuff:
                     return 217;
+                case BuffType.Blindness:
+                    return 226;
 
                 //Special
                 case BuffType.GameMaster:
@@ -487,10 +492,9 @@ namespace Client.MirScenes.Dialogs
                 case BuffType.Transform:
                     return 241;
                 case BuffType.Mentor:
-                    return 248;
                 case BuffType.Mentee:
                     return 248;
-                case BuffType.RelationshipEXP:
+                case BuffType.Lover:
                     return 201;
                 case BuffType.Guild:
                     return 203;

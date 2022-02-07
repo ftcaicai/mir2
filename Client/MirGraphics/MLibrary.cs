@@ -73,6 +73,7 @@ namespace Client.MirGraphics
                                           Monsters,
                                           Gates,
                                           Flags,
+                                          Siege,
                                           Mounts,
                                           NPCs,
                                           Fishing,
@@ -108,6 +109,8 @@ namespace Client.MirGraphics
             //Other
             InitLibrary(ref Monsters, Settings.MonsterPath, "000");
             InitLibrary(ref Gates, Settings.GatePath, "00");
+            InitLibrary(ref Flags, Settings.FlagPath, "00");
+            InitLibrary(ref Siege, Settings.SiegePath, "00");
             InitLibrary(ref NPCs, Settings.NPCPath, "00");
             InitLibrary(ref Mounts, Settings.MountPath, "00");
             InitLibrary(ref Fishing, Settings.FishingPath, "00");
@@ -225,7 +228,7 @@ namespace Client.MirGraphics
 
         private static void LoadGameLibraries()
         {
-            Count = MapLibs.Length + Monsters.Length + Gates.Length + NPCs.Length + CArmours.Length +
+            Count = MapLibs.Length + Monsters.Length + Gates.Length + Flags.Length + Siege.Length + NPCs.Length + CArmours.Length +
                 CHair.Length + CWeapons.Length + CWeaponEffect.Length + AArmours.Length + AHair.Length + AWeaponsL.Length + AWeaponsR.Length +
                 ARArmours.Length + ARHair.Length + ARWeapons.Length + ARWeaponsS.Length +
                 CHumEffect.Length + AHumEffect.Length + ARHumEffect.Length + Mounts.Length + Fishing.Length + Pets.Length +
@@ -294,6 +297,18 @@ namespace Client.MirGraphics
             for (int i = 0; i < Gates.Length; i++)
             {
                 Gates[i].Initialize();
+                Progress++;
+            }
+
+            for (int i = 0; i < Flags.Length; i++)
+            {
+                Flags[i].Initialize();
+                Progress++;
+            }
+
+            for (int i = 0; i < Siege.Length; i++)
+            {
+                Siege[i].Initialize();
                 Progress++;
             }
 
@@ -621,6 +636,8 @@ namespace Client.MirGraphics
 
 
             DXManager.Sprite.Draw(mi.Image, new Rectangle(0, 0, mi.Width, mi.Height), Vector3.Zero, new Vector3((float)x, (float)y, 0.0F), Color.White);
+            CMain.DPSCounter++;
+
             mi.CleanTime = CMain.Time + Settings.CleanDelay;
         }
         public void Draw(int index, Point point, Color colour, bool offSet = false)
@@ -636,6 +653,7 @@ namespace Client.MirGraphics
                 return;
 
             DXManager.Sprite.Draw(mi.Image, new Rectangle(0, 0, mi.Width, mi.Height), Vector3.Zero, new Vector3((float)point.X, (float)point.Y, 0.0F), colour);
+            CMain.DPSCounter++;
 
             mi.CleanTime = CMain.Time + Settings.CleanDelay;
         }
@@ -655,7 +673,8 @@ namespace Client.MirGraphics
             float oldOpacity = DXManager.Opacity;
             DXManager.SetOpacity(opacity);
 
-            DXManager.Sprite.Draw(mi.Image, new Rectangle(0, 0, mi.Width, mi.Height), Vector3.Zero, new Vector3((float)point.X, (float)point.Y, 0.0F), colour);
+            DXManager.Sprite.Draw(mi.Image, new Rectangle(0, 0, mi.Width, mi.Height), Vector3.Zero, new Vector3((float)point.X, (float)point.Y, 0.0F), colour); 
+            CMain.DPSCounter++;
 
             DXManager.SetOpacity(oldOpacity);
             mi.CleanTime = CMain.Time + Settings.CleanDelay;
@@ -677,6 +696,7 @@ namespace Client.MirGraphics
             DXManager.SetBlend(true, rate);
 
             DXManager.Sprite.Draw(mi.Image, new Rectangle(0, 0, mi.Width, mi.Height), Vector3.Zero, new Vector3((float)point.X, (float)point.Y, 0.0F), colour);
+            CMain.DPSCounter++;
 
             DXManager.SetBlend(oldBlend);
             mi.CleanTime = CMain.Time + Settings.CleanDelay;
@@ -701,6 +721,7 @@ namespace Client.MirGraphics
                 section.Height -= section.Bottom - mi.Height;
 
             DXManager.Sprite.Draw(mi.Image, section, Vector3.Zero, new Vector3((float)point.X, (float)point.Y, 0.0F), colour);
+            CMain.DPSCounter++;
 
             mi.CleanTime = CMain.Time + Settings.CleanDelay;
         }
@@ -724,7 +745,8 @@ namespace Client.MirGraphics
             float oldOpacity = DXManager.Opacity;
             DXManager.SetOpacity(opacity);
 
-            DXManager.Sprite.Draw(mi.Image, section, Vector3.Zero, new Vector3((float)point.X, (float)point.Y, 0.0F), colour);
+            DXManager.Sprite.Draw(mi.Image, section, Vector3.Zero, new Vector3((float)point.X, (float)point.Y, 0.0F), colour); 
+            CMain.DPSCounter++;
 
             DXManager.SetOpacity(oldOpacity);
             mi.CleanTime = CMain.Time + Settings.CleanDelay;
@@ -744,7 +766,9 @@ namespace Client.MirGraphics
 
             Matrix matrix = Matrix.Scaling(scaleX, scaleY, 0);
             DXManager.Sprite.Transform = matrix;
-            DXManager.Sprite.Draw(mi.Image, new Rectangle(0, 0, mi.Width, mi.Height), Vector3.Zero, new Vector3((float)point.X / scaleX, (float)point.Y / scaleY, 0.0F), Color.White);
+            DXManager.Sprite.Draw(mi.Image, new Rectangle(0, 0, mi.Width, mi.Height), Vector3.Zero, new Vector3((float)point.X / scaleX, (float)point.Y / scaleY, 0.0F), Color.White); 
+            CMain.DPSCounter++;
+
             DXManager.Sprite.Transform = Matrix.Identity;
 
             mi.CleanTime = CMain.Time + Settings.CleanDelay;
@@ -763,10 +787,12 @@ namespace Client.MirGraphics
                 return;
 
             DXManager.Sprite.Draw(mi.Image, new Rectangle(0, 0, mi.Width, mi.Height), Vector3.Zero, new Vector3((float)point.X, (float)point.Y, 0.0F), colour);
+            CMain.DPSCounter++;
 
             if (mi.HasMask)
             {
                 DXManager.Sprite.Draw(mi.MaskImage, new Rectangle(0, 0, mi.Width, mi.Height), Vector3.Zero, new Vector3((float)point.X, (float)point.Y, 0.0F), Tint);
+                CMain.DPSCounter++;
             }
 
             mi.CleanTime = CMain.Time + Settings.CleanDelay;
@@ -788,6 +814,8 @@ namespace Client.MirGraphics
                 return;
 
             DXManager.Sprite.Draw(mi.Image, new Rectangle(0, 0, mi.Width, mi.Height), Vector3.Zero, new Vector3(x, y, 0.0F), Color.White);
+            CMain.DPSCounter++;
+
             mi.CleanTime = CMain.Time + Settings.CleanDelay;
         }
         public void DrawUpBlend(int index, Point point)
@@ -807,6 +835,7 @@ namespace Client.MirGraphics
             DXManager.SetBlend(true, 1);
 
             DXManager.Sprite.Draw(mi.Image, new Rectangle(0, 0, mi.Width, mi.Height), Vector3.Zero, new Vector3((float)point.X, (float)point.Y, 0.0F), Color.White);
+            CMain.DPSCounter++;
 
             DXManager.SetBlend(oldBlend);
             mi.CleanTime = CMain.Time + Settings.CleanDelay;

@@ -60,10 +60,6 @@ namespace Server.MirObjects
         public byte Light;
         public int AttackSpeed;
 
-        public int CurrentHandWeight,
-                   CurrentWearWeight,
-                   CurrentBagWeight;
-
         public long CellTime, BrownTime, PKPointTime, LastHitTime, EXPOwnerTime;
         public Color NameColour = Color.White;
         
@@ -121,8 +117,6 @@ namespace Server.MirObjects
                 _sneakingActive = value;
 
                 Observer = _sneakingActive;
-
-                //CurrentMap.Broadcast(new S.ObjectSneaking { ObjectID = ObjectID, SneakingActive = value }, CurrentLocation);
             }
         }
 
@@ -153,12 +147,11 @@ namespace Server.MirObjects
         public Stats Stats;
 
         public List<MonsterObject> Pets = new List<MonsterObject>();
-        public List<Buff> Buffs = new List<Buff>();
+        public virtual List<Buff> Buffs { get; set; } = new List<Buff>();
 
         public List<PlayerObject> GroupMembers;
 
         public virtual AttackMode AMode { get; set; }
-
         public virtual PetMode PMode { get; set; }
 
         private bool _inSafeZone;
@@ -174,7 +167,7 @@ namespace Server.MirObjects
 
         public float ArmourRate, DamageRate; //recieved not given
 
-        public List<Poison> PoisonList = new List<Poison>();
+        public virtual List<Poison> PoisonList { get; set; } = new List<Poison>();
         public PoisonType CurrentPoison = PoisonType.None;
         public List<DelayedAction> ActionList = new List<DelayedAction>();
 
@@ -235,6 +228,7 @@ namespace Server.MirObjects
         {
             for (int i = 0; i < Buffs.Count; i++)
             {
+                if (Buffs[i].ObjectID == 0) continue;
                 if (!Buffs[i].Properties.HasFlag(BuffProperty.PauseInSafeZone)) continue;
 
                 if (InSafeZone)
@@ -297,8 +291,8 @@ namespace Server.MirObjects
         {
             if (Race == ObjectType.Merchant)
             {
-                NPCObject NPC = (NPCObject)this;
-                NPC.CheckVisible(player, true);
+                NPCObject npc = (NPCObject)this;
+                npc.CheckVisible(player, true);
                 return;
             }
 
@@ -553,7 +547,7 @@ namespace Server.MirObjects
 
         public abstract void ApplyPoison(Poison p, MapObject Caster = null, bool NoResist = false, bool ignoreDefence = true);
 
-        public virtual Buff AddBuff(BuffType type, MapObject owner, int duration, Stats stats, bool refreshStats = true, params int[] values)
+        public virtual Buff AddBuff(BuffType type, MapObject owner, int duration, Stats stats, bool refreshStats = true, bool updateOnly = false, params int[] values)
         {
             if (!HasBuff(type, out Buff buff))
             {
@@ -561,54 +555,57 @@ namespace Server.MirObjects
                 {
                     Caster = owner,
                     ObjectID = ObjectID,
-                    ExpireTime = Envir.Time + duration,
+                    ExpireTime = duration,
+                    LastTime = Envir.Time,
                     Stats = stats
                 };
-
-                if (buff.Properties.HasFlag(BuffProperty.PauseInSafeZone) && InSafeZone)
-                {
-                    buff.ExpireTime -= Envir.Time;
-                    buff.Paused = true;
-                }
 
                 Buffs.Add(buff);
             }
             else
             {
-                switch (buff.StackType)
+                if (!updateOnly)
                 {
-                    case BuffStackType.ResetDuration:
-                        {
-                            buff.ExpireTime = Envir.Time + duration;
-                        }
-                        break;
-                    case BuffStackType.StackDuration:
-                        {
-                            buff.ExpireTime += duration;
-                        }
-                        break;
-                    case BuffStackType.StackStat:
-                        {
-                            if (stats != null)
+                    switch (buff.StackType)
+                    {
+                        case BuffStackType.ResetDuration:
                             {
-                                buff.Stats.Add(stats);
+                                buff.ExpireTime = duration;
                             }
-                        }
-                        break;
-                    case BuffStackType.StackStatAndDuration:
-                        {
-                            if (stats != null)
+                            break;
+                        case BuffStackType.StackDuration:
                             {
-                                buff.Stats.Add(stats);
+                                buff.ExpireTime += duration;
                             }
+                            break;
+                        case BuffStackType.StackStat:
+                            {
+                                if (stats != null)
+                                {
+                                    buff.Stats.Add(stats);
+                                }
+                            }
+                            break;
+                        case BuffStackType.StackStatAndDuration:
+                            {
+                                if (stats != null)
+                                {
+                                    buff.Stats.Add(stats);
+                                }
 
-                            buff.ExpireTime += duration;
-                        }
-                        break;
-                    case BuffStackType.None:
-                    case BuffStackType.Infinite:
-                        break;
+                                buff.ExpireTime += duration;
+                            }
+                            break;
+                        case BuffStackType.Infinite:
+                        case BuffStackType.None:
+                            break;
+                    }
                 }
+            }
+
+            if (buff.Properties.HasFlag(BuffProperty.PauseInSafeZone) && InSafeZone)
+            {
+                buff.Paused = true;
             }
 
             buff.Stats ??= new Stats();
@@ -640,7 +637,7 @@ namespace Server.MirObjects
 
                 Buffs[i].FlagForRemoval = true;
                 Buffs[i].Paused = false;
-                Buffs[i].ExpireTime = Envir.Time;
+                Buffs[i].ExpireTime = 0;
 
                 switch(b)
                 {
@@ -679,7 +676,6 @@ namespace Server.MirObjects
         {
             if (b.Paused) return;
 
-            b.ExpireTime -= Envir.Time;
             b.Paused = true;
         }
 
@@ -687,7 +683,6 @@ namespace Server.MirObjects
         {
             if (!b.Paused) return;
 
-            b.ExpireTime += Envir.Time;
             b.Paused = false;
         }
 
@@ -761,19 +756,7 @@ namespace Server.MirObjects
         {
             if (map == null) map = CurrentMap;
             if (map.Cells == null) return false;
-            if (map.WalkableCells != null && map.WalkableCells.Count == 0) return false;
-
-            if (map.WalkableCells == null)
-            {
-                map.WalkableCells = new List<Point>();
-
-                for (int x = 0; x < map.Width; x++)
-                    for (int y = 0; y < map.Height; y++)
-                        if (map.Cells[x, y].Attribute == CellAttribute.Walk)
-                            map.WalkableCells.Add(new Point(x, y));
-
-                if (map.WalkableCells.Count == 0) return false;
-            }
+            if (map.WalkableCells.Count == 0) return false;
 
             int cellIndex = Envir.Random.Next(map.WalkableCells.Count);
 
@@ -896,6 +879,7 @@ namespace Server.MirObjects
         }
 
         public abstract void Die();
+
         public abstract int Pushed(MapObject pusher, MirDirection dir, int distance);
 
         public bool IsMember(MapObject member)
@@ -917,7 +901,7 @@ namespace Server.MirObjects
             {
                 if (this is PlayerObject)
                 {
-                    PlayerObject player = (PlayerObject)this;
+                    var player = (PlayerObject)this;
                     player.Enqueue(new S.InTrapRock { Trapped = value });
                 }
             }
@@ -982,187 +966,6 @@ namespace Server.MirObjects
             Time = reader.ReadInt64();
             TickTime = reader.ReadInt64();
             TickSpeed = reader.ReadInt64();
-        }
-    }
-
-    public class Buff
-    {
-        protected static Envir Envir
-        {
-            get { return Envir.Main; }
-        }
-
-        private Dictionary<string, object> Data { get; set; } = new Dictionary<string, object>();
-
-        public BuffInfo Info;
-        public MapObject Caster;
-        public uint ObjectID;
-        public long ExpireTime;
-
-        public Stats Stats;
-
-        public int[] Values;
-
-        public bool FlagForRemoval;
-        public bool Paused;
-
-        public BuffType Type
-        {
-            get { return Info.Type; }
-        }
-
-        public BuffStackType StackType
-        {
-            get { return Info.StackType; }
-        }
-
-        public BuffProperty Properties
-        {
-            get { return Info.Properties; }
-        }
-
-        public Buff(BuffType type)
-        {
-            Info = Envir.GetBuffInfo(type);
-            Stats = new Stats();
-            Data = new Dictionary<string, object>();
-        }
-
-        public Buff(BinaryReader reader)
-        {
-            var type = (BuffType)reader.ReadByte();
-
-            Info = Envir.GetBuffInfo(type);
-
-            Caster = null;
-
-            if (Envir.LoadVersion < 88)
-            {
-                var visible = reader.ReadBoolean();
-            }
-
-            ObjectID = reader.ReadUInt32();
-            ExpireTime = reader.ReadInt64();
-
-            if (Envir.LoadVersion <= 84)
-            {
-                Values = new int[reader.ReadInt32()];
-
-                for (int i = 0; i < Values.Length; i++)
-                {
-                    Values[i] = reader.ReadInt32();
-                }
-
-                if (Envir.LoadVersion < 88)
-                {
-                    var infinite = reader.ReadBoolean();
-                }
-
-                Stats = new Stats();
-                Data = new Dictionary<string, object>();
-            }
-            else
-            {
-                if (Envir.LoadVersion < 88)
-                {
-                    var stackable = reader.ReadBoolean();
-                }
-
-                Values = new int[0];
-                Stats = new Stats(reader);
-                Data = new Dictionary<string, object>();
-
-                int count = reader.ReadInt32();
-
-                for (int i = 0; i < count; i++)
-                {
-                    var key = reader.ReadString();
-                    var length = reader.ReadInt32();
-
-                    var array = new byte[length];
-
-                    for (int j = 0; j < array.Length; j++)
-                    {
-                        array[j] = reader.ReadByte();
-                    }
-
-                    Data[key] = Functions.DeserializeFromBytes(array);
-                }
-
-                if (Envir.LoadVersion > 86)
-                {
-                    count = reader.ReadInt32();
-
-                    Values = new int[count];
-
-                    for (int i = 0; i < count; i++)
-                    {
-                        Values[i] = reader.ReadInt32();
-                    }
-                }
-            }
-        }
-
-        public void Save(BinaryWriter writer)
-        {
-            writer.Write((byte)Type);
-            writer.Write(ObjectID);
-            writer.Write(ExpireTime);
-
-            Stats.Save(writer);
-
-            writer.Write(Data.Count);
-
-            foreach (KeyValuePair<string, object> pair in Data)
-            {
-                var bytes = Functions.SerializeToBytes(pair.Value);
-
-                writer.Write(pair.Key);
-                writer.Write(bytes.Length);
-
-                for (int i = 0; i < bytes.Length; i++)
-                {
-                    writer.Write(bytes[i]);
-                }
-            }
-
-            writer.Write(Values.Length);
-
-            for (int i = 0; i < Values.Length; i++)
-            {
-                writer.Write(Values[i]);
-            }
-        }
-
-        public T Get<T>(string key)
-        {
-            if (!Data.TryGetValue(key, out object result))
-            {
-                return default;
-            }
-
-            return (T)result;
-        }
-
-        public void Set(string key, object val)
-        {
-            Data[key] = val;
-        }
-
-        public ClientBuff ToClientBuff()
-        {
-            return new ClientBuff
-            {
-                Type = Type,
-                Caster = Caster?.Name ?? "",
-                ObjectID = ObjectID,
-                Visible = Info.Visible,
-                Infinite = StackType == BuffStackType.Infinite,
-                Paused = Paused,
-                ExpireTime = ExpireTime,
-                Stats = new Stats(Stats),
-                Values = Values
-            };
         }
     }
 }

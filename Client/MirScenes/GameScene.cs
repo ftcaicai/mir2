@@ -1362,6 +1362,9 @@ namespace Client.MirScenes
                 case (short)ServerPacketIds.ItemSlotSizeChanged:
                     ItemSlotSizeChanged((S.ItemSlotSizeChanged)p);
                     break;
+                case (short)ServerPacketIds.ItemSealChanged:
+                    ItemSealChanged((S.ItemSealChanged)p);
+                    break;
                 case (short)ServerPacketIds.NewMagic:
                     NewMagic((S.NewMagic)p);
                     break;
@@ -1783,6 +1786,9 @@ namespace Client.MirScenes
                     break;
                 case (short)ServerPacketIds.Roll:
                     Roll((S.Roll)p);
+                    break;
+                case (short)ServerPacketIds.SetCompass:
+                    SetCompass((S.SetCompass)p);
                     break;
                 default:
                     base.ProcessPacket(p);
@@ -3767,6 +3773,41 @@ namespace Client.MirScenes
             item.SetSlotSize(p.SlotSize);
         }
 
+        private void ItemSealChanged(S.ItemSealChanged p)
+        {
+            UserItem item = null;
+            for (int i = 0; i < User.Inventory.Length; i++)
+            {
+                if (User.Inventory[i] != null && User.Inventory[i].UniqueID == p.UniqueID)
+                {
+                    item = User.Inventory[i];
+                    break;
+                }
+            }
+
+            if (item == null)
+            {
+                for (int i = 0; i < User.Equipment.Length; i++)
+                {
+                    if (User.Equipment[i] != null && User.Equipment[i].UniqueID == p.UniqueID)
+                    {
+                        item = User.Equipment[i];
+                        break;
+                    }
+                }
+            }
+
+            if (item == null) return;
+
+            item.SealedInfo = new SealedInfo { ExpiryDate = p.ExpiryDate };
+
+            if (HoverItem == item)
+            {
+                DisposeItemLabel();
+                CreateItemLabel(item);
+            }
+        }
+
         private void ItemUpgraded(S.ItemUpgraded p)
         {
             UserItem item = null;
@@ -3927,6 +3968,12 @@ namespace Client.MirScenes
 
                 switch (p.Effect)
                 {
+                    // Sanjian
+                    case SpellEffect.FurbolgWarriorCritical:
+                        ob.Effects.Add(new Effect(Libraries.Monsters[(ushort)Monster.FurbolgWarrior], 400, 6, 600, ob));
+                        SoundManager.PlaySound(20000 + (ushort)Spell.FatalSword * 10);
+                        break;
+
                     case SpellEffect.FatalSword:
                         ob.Effects.Add(new Effect(Libraries.Magic2, 1940, 4, 400, ob));
                         SoundManager.PlaySound(20000 + (ushort)Spell.FatalSword * 10);
@@ -4439,6 +4486,8 @@ namespace Client.MirScenes
             {
                 if (BuffsDialog.Buffs[i].Type != p.Type || User.ObjectID != p.ObjectID) continue;
 
+                User.RefreshStats();
+
                 if (BuffsDialog.Buffs[i].Paused == p.Paused) return;
 
                 BuffsDialog.Buffs[i].Paused = p.Paused;
@@ -4452,9 +4501,6 @@ namespace Client.MirScenes
                     BuffsDialog.Buffs[i].ExpireTime += CMain.Time;
                 }
             }
-
-            if (User.ObjectID == p.ObjectID)
-                User.RefreshStats();
         }
 
         private void ObjectHidden(S.ObjectHidden p)
@@ -5682,7 +5728,7 @@ namespace Client.MirScenes
         {
             p.Item.Stock = p.StockLevel;
             GameShopInfoList.Add(p.Item);
-            if (p.Item.Date > DateTime.Now.AddDays(-7)) GameShopDialog.New.Visible = true;
+            if (p.Item.Date > CMain.Now.AddDays(-7)) GameShopDialog.New.Visible = true;
         }
 
         private void GameShopStock(S.GameShopStock p)
@@ -6025,6 +6071,9 @@ namespace Client.MirScenes
                 case ItemType.Deco:
                     baseText = GameLanguage.ItemTypeDeco;
                     break;
+                case ItemType.MonsterSpawn:
+                    baseText = GameLanguage.ItemTypeMonsterSpawn;
+                    break;
             }
 
             if (HoverItem.WeddingRing != -1)
@@ -6103,8 +6152,17 @@ namespace Client.MirScenes
 
             if (minValue > 0 && realItem.Type == ItemType.Gem)
             {
+                switch (realItem.Shape)
+                {
+                    default:
+                        text = string.Format("Adds +{0} Durability", minValue / 1000);
+                        break;
+                    case 8:
+                        text = string.Format("Seals for {0}", Functions.PrintTimeSpanFromSeconds(minValue * 60));
+                        break;
+                }
+
                 count++;
-                text = string.Format("Adds +{0} Durability", minValue / 1000);
                 MirLabel DuraLabel = new MirLabel
                 {
                     AutoSize = true,
@@ -6750,26 +6808,29 @@ namespace Client.MirScenes
 
             #region MAXHP
 
-            minValue = realItem.Stats[Stat.HP];
-            maxValue = 0;
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.HP] : 0;
-
-            if (minValue > 0 || maxValue > 0 || addValue > 0)
+            if (HoverItem.Info.Type != ItemType.MonsterSpawn)
             {
-                count++;
-                MirLabel MAXHPLabel = new MirLabel
-                {
-                    AutoSize = true,
-                    ForeColour = addValue > 0 ? Color.Cyan : Color.White,
-                    Location = new Point(4, ItemLabel.DisplayRectangle.Bottom),
-                    OutLine = true,
-                    Parent = ItemLabel,
-                    //Text = string.Format(realItem.Type == ItemType.Potion ? "HP + {0} Recovery" : "MAXHP + {0}", minValue + addValue)
-                    Text = string.Format(addValue > 0 ? "Max HP + {0} (+{1})" : "Max HP + {0}", minValue + addValue, addValue)
-                };
+                minValue = realItem.Stats[Stat.HP];
+                maxValue = 0;
+                addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.HP] : 0;
 
-                ItemLabel.Size = new Size(Math.Max(ItemLabel.Size.Width, MAXHPLabel.DisplayRectangle.Right + 4),
-                    Math.Max(ItemLabel.Size.Height, MAXHPLabel.DisplayRectangle.Bottom));
+                if (minValue > 0 || maxValue > 0 || addValue > 0)
+                {
+                    count++;
+                    MirLabel MAXHPLabel = new MirLabel
+                    {
+                        AutoSize = true,
+                        ForeColour = addValue > 0 ? Color.Cyan : Color.White,
+                        Location = new Point(4, ItemLabel.DisplayRectangle.Bottom),
+                        OutLine = true,
+                        Parent = ItemLabel,
+                        //Text = string.Format(realItem.Type == ItemType.Potion ? "HP + {0} Recovery" : "MAXHP + {0}", minValue + addValue)
+                        Text = string.Format(addValue > 0 ? "Max HP + {0} (+{1})" : "Max HP + {0}", minValue + addValue, addValue)
+                    };
+
+                    ItemLabel.Size = new Size(Math.Max(ItemLabel.Size.Width, MAXHPLabel.DisplayRectangle.Right + 4),
+                        Math.Max(ItemLabel.Size.Height, MAXHPLabel.DisplayRectangle.Bottom));
+                }
             }
 
             #endregion
@@ -7883,7 +7944,7 @@ namespace Client.MirScenes
                     Location = new Point(4, ItemLabel.DisplayRectangle.Bottom),
                     OutLine = true,
                     Parent = ItemLabel,
-                    Text = string.Format("Cannot be a weddingring")
+                    Text = string.Format("Cannot be a Wedding Ring")
                 };
 
                 ItemLabel.Size = new Size(Math.Max(ItemLabel.Size.Width, No_WedLabel.DisplayRectangle.Right + 4),
@@ -7904,7 +7965,7 @@ namespace Client.MirScenes
                     Location = new Point(4, ItemLabel.DisplayRectangle.Bottom),
                     OutLine = true,
                     Parent = ItemLabel,
-                    Text = string.Format("Soulbinds on equip")
+                    Text = string.Format("SoulBinds on equip")
                 };
 
                 ItemLabel.Size = new Size(Math.Max(ItemLabel.Size.Width, BOELabel.DisplayRectangle.Right + 4),
@@ -8205,7 +8266,7 @@ namespace Client.MirScenes
 
             if (HoverItem.ExpireInfo != null)
             {
-                double remainingSeconds = (HoverItem.ExpireInfo.ExpiryDate - DateTime.Now).TotalSeconds;
+                double remainingSeconds = (HoverItem.ExpireInfo.ExpiryDate - CMain.Now).TotalSeconds;
 
                 count++;
                 MirLabel EXPIRELabel = new MirLabel
@@ -8224,9 +8285,34 @@ namespace Client.MirScenes
 
             #endregion
 
+            #region SEALED
+
+            if (HoverItem.SealedInfo != null)
+            {
+                double remainingSeconds = (HoverItem.SealedInfo.ExpiryDate - CMain.Now).TotalSeconds;
+
+                if (remainingSeconds > 0)
+                {
+                    count++;
+                    MirLabel SEALEDLabel = new MirLabel
+                    {
+                        AutoSize = true,
+                        ForeColour = Color.Red,
+                        Location = new Point(4, ItemLabel.DisplayRectangle.Bottom),
+                        OutLine = true,
+                        Parent = ItemLabel,
+                        Text = remainingSeconds > 0 ? string.Format("Sealed for {0}", Functions.PrintTimeSpanFromSeconds(remainingSeconds)) : ""
+                    };
+
+                    ItemLabel.Size = new Size(Math.Max(ItemLabel.Size.Width, SEALEDLabel.DisplayRectangle.Right + 4),
+                        Math.Max(ItemLabel.Size.Height, SEALEDLabel.DisplayRectangle.Bottom));
+                }
+            }
+
+            #endregion
+
             if (HoverItem.RentalInformation?.RentalLocked == false)
             {
-
                 count++;
                 MirLabel OWNERLabel = new MirLabel
                 {
@@ -8241,7 +8327,7 @@ namespace Client.MirScenes
                 ItemLabel.Size = new Size(Math.Max(ItemLabel.Size.Width, OWNERLabel.DisplayRectangle.Right + 4),
                     Math.Max(ItemLabel.Size.Height, OWNERLabel.DisplayRectangle.Bottom));
 
-                double remainingTime = (HoverItem.RentalInformation.ExpiryDate - DateTime.Now).TotalSeconds;
+                double remainingTime = (HoverItem.RentalInformation.ExpiryDate - CMain.Now).TotalSeconds;
 
                 count++;
                 MirLabel RENTALLabel = new MirLabel
@@ -8257,10 +8343,10 @@ namespace Client.MirScenes
                 ItemLabel.Size = new Size(Math.Max(ItemLabel.Size.Width, RENTALLabel.DisplayRectangle.Right + 4),
                     Math.Max(ItemLabel.Size.Height, RENTALLabel.DisplayRectangle.Bottom));
             }
-            else if (HoverItem.RentalInformation?.RentalLocked == true && HoverItem.RentalInformation.ExpiryDate > DateTime.Now)
+            else if (HoverItem.RentalInformation?.RentalLocked == true && HoverItem.RentalInformation.ExpiryDate > CMain.Now)
             {
                 count++;
-                var remainingTime = (HoverItem.RentalInformation.ExpiryDate - DateTime.Now).TotalSeconds;
+                var remainingTime = (HoverItem.RentalInformation.ExpiryDate - CMain.Now).TotalSeconds;
                 var RentalLockLabel = new MirLabel
                 {
                     AutoSize = true,
@@ -8330,6 +8416,9 @@ namespace Client.MirScenes
                     case 3:
                     case 4:
                         text = "Hold CTRL and left click to combine with an item.";
+                        break;
+                    case 8:
+                        text = "Hold CTRL and left click to seal an item.";
                         break;
                 }
                 count++;
@@ -8844,6 +8933,11 @@ namespace Client.MirScenes
             GameScene.Scene.TimerControl.ExpireTimer(p.Key);
         }
 
+        private void SetCompass(S.SetCompass p)
+        {
+            GameScene.Scene.CompassControl.SetPoint(p.Location);
+        }
+
         private void Roll(S.Roll p)
         {
             GameScene.Scene.RollControl.Setup(p.Type, p.Page, p.Result, p.AutoRoll);
@@ -9177,7 +9271,10 @@ namespace Client.MirScenes
             DrawBackground();
 
             if (FloorValid)
+            {
                 DXManager.Sprite.Draw(DXManager.FloorTexture, new Rectangle(0, 0, Settings.ScreenWidth, Settings.ScreenHeight), Vector3.Zero, Vector3.Zero, Color.White);
+                CMain.DPSCounter++;
+            }
 
             DrawObjects();
 
@@ -9254,6 +9351,7 @@ namespace Client.MirScenes
 
             DXManager.SetOpacity(Opacity);
             DXManager.Sprite.Draw(ControlTexture, new Rectangle(0, 0, Settings.ScreenWidth, Settings.ScreenHeight), Vector3.Zero, Vector3.Zero, Color.White);
+            CMain.DPSCounter++;
             DXManager.SetOpacity(oldOpacity);
 
             if (MapObject.User.Dead) DXManager.SetGrayscale(false);
@@ -9676,7 +9774,8 @@ namespace Client.MirScenes
             int light;
             Point p;
             DXManager.SetBlend(true);
-            DXManager.Device.SetRenderState(SlimDX.Direct3D9.RenderState.SourceBlend, Blend.SourceAlpha);
+            DXManager.Device.SetRenderState(RenderState.SourceBlend, Blend.SourceAlpha);
+            DXManager.Device.SetRenderState(RenderState.DestinationBlend, Blend.One);
 
             #region Object Lights (Player/Mob/NPC)
             for (int i = 0; i < Objects.Count; i++)
@@ -9729,6 +9828,7 @@ namespace Client.MirScenes
                     {
                         p.Offset(-(DXManager.LightSizes[lightRange].X / 2) - (CellWidth / 2), -(DXManager.LightSizes[lightRange].Y / 2) - (CellHeight / 2) -5);
                         DXManager.Sprite.Draw(DXManager.Lights[lightRange], null, Vector3.Zero, new Vector3((float)p.X, (float)p.Y, 0.0F), lightColour);
+                        CMain.DPSCounter++;
                     }
                 }
 
@@ -9754,6 +9854,7 @@ namespace Client.MirScenes
                     {
                         p.Offset(-(DXManager.LightSizes[light].X / 2) - (CellWidth / 2), -(DXManager.LightSizes[light].Y / 2) - (CellHeight / 2) - 5);
                         DXManager.Sprite.Draw(DXManager.Lights[light], null, Vector3.Zero, new Vector3((float)p.X, (float)p.Y, 0.0F), lightColour);
+                        CMain.DPSCounter++;
                     }
 
                 }
@@ -9785,6 +9886,7 @@ namespace Client.MirScenes
                     {
                         p.Offset(-(DXManager.LightSizes[light].X / 2) - (CellWidth / 2), -(DXManager.LightSizes[light].Y / 2) - (CellHeight / 2) - 5);
                         DXManager.Sprite.Draw(DXManager.Lights[light], null, Vector3.Zero, new Vector3((float)p.X, (float)p.Y, 0.0F), lightColour);
+                        CMain.DPSCounter++;
                     }
                 }
             }
@@ -9848,6 +9950,7 @@ namespace Client.MirScenes
                     {
                         p.Offset(-(DXManager.LightSizes[light].X / 2) - (CellWidth / 2) + 10, -(DXManager.LightSizes[light].Y / 2) - (CellHeight / 2) - 5);
                         DXManager.Sprite.Draw(DXManager.Lights[light], null, Vector3.Zero, new Vector3((float)p.X, (float)p.Y, 0.0F), lightIntensity);
+                        CMain.DPSCounter++;
                     }
                 }
             }
@@ -9856,10 +9959,12 @@ namespace Client.MirScenes
             DXManager.SetBlend(false);
             DXManager.SetSurface(oldSurface);
 
-            DXManager.Device.SetRenderState(SlimDX.Direct3D9.RenderState.SourceBlend, Blend.DestinationColor);
-            DXManager.Device.SetRenderState(SlimDX.Direct3D9.RenderState.DestinationBlend, Blend.BothInverseSourceAlpha);
+            DXManager.Device.SetRenderState(RenderState.SourceBlend, Blend.Zero);
+            DXManager.Device.SetRenderState(RenderState.DestinationBlend, Blend.SourceColor);
 
             DXManager.Sprite.Draw(DXManager.LightTexture, new Rectangle(0, 0, Settings.ScreenWidth, Settings.ScreenHeight), Vector3.Zero, Vector3.Zero, Color.White);
+            CMain.DPSCounter++;
+
             DXManager.Sprite.End();
             DXManager.Sprite.Begin(SpriteFlags.AlphaBlend);
         }

@@ -188,7 +188,6 @@ namespace Client.MirControls
             Opacity = 0.5F;
             DrawControlTexture = true;
             Library = Libraries.Items;
-
         }
 
         public void SetEffect()
@@ -490,6 +489,7 @@ namespace Client.MirControls
                 case ItemType.Pets:
                 case ItemType.Transform:
                 case ItemType.Deco:
+                case ItemType.MonsterSpawn:
                     if (CanUseItem() && GridType == MirGridType.Inventory)
                     {
                         if (CMain.Time < GameScene.UseItemTime) return;
@@ -2138,6 +2138,11 @@ namespace Client.MirControls
                     }
 
                     Library.Draw(image, DisplayLocation.Add(offSet), ForeColour, UseOffSet, 1F);
+
+                    if (Item.SealedInfo != null && Item.SealedInfo.ExpiryDate > CMain.Now)
+                    {
+                        Libraries.StateItems.Draw(3590, DisplayLocation.Add(new Point(2, 2)), Color.White, UseOffSet, 1F);
+                    }
                 }
             }
             else if (Item != null && (GameScene.SelectedCell == this || Locked))
