@@ -3064,6 +3064,23 @@ namespace Client.MirScenes
             {
                 UserItem item = User.Inventory[i];
 
+                if (item != null && item.Slots.Length > 0)
+                    if (item != null && item.Slots.Length > 0)
+                {
+                    for (int j = 0; j < item.Slots.Length; j++)
+                    {
+                        UserItem slotItem = item.Slots[j];
+
+                        if (slotItem == null || slotItem.UniqueID != p.UniqueID) continue;
+
+                        if (slotItem.Count == p.Count)
+                            item.Slots[j] = null;
+                        else
+                            slotItem.Count -= p.Count;
+                        break;
+                    }
+                }
+
                 if (item == null || item.UniqueID != p.UniqueID) continue;
 
                 if (item.Count == p.Count)
@@ -5843,6 +5860,8 @@ namespace Client.MirScenes
                     return Color.DarkOrange;
                 case ItemGrade.Mythical:
                     return Color.Plum;
+                case ItemGrade.Heroic:
+                    return Color.Red;
                 default:
                     return Color.Yellow;
             }
@@ -5896,7 +5915,10 @@ namespace Client.MirScenes
                     break;
                 case ItemGrade.Mythical:
                     GradeString = GameLanguage.ItemGradeMythical;
-                    break;              
+                    break;
+                case ItemGrade.Heroic:
+                    GradeString = GameLanguage.ItemGradeHeroic;
+                    break;
             }
             MirLabel nameLabel = new MirLabel
             {
